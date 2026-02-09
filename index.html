@@ -1,1 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>My Teddy 🧸</title>
 
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@400&display=swap" rel="stylesheet">
+
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body{
+  height:100vh;
+  background: radial-gradient(circle at top, #13183b, #02030c);
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:'Poppins',sans-serif;
+  cursor:pointer;
+}
+
+/* 🌌 MOVING STAR FIELD */
+.stars{
+  position:absolute; inset:0;
+  background-image:
+    radial-gradient(1px 1px at 10% 20%, white, transparent),
+    radial-gradient(2px 2px at 30% 70%, white, transparent),
+    radial-gradient(1px 1px at 50% 40%, white, transparent),
+    radial-gradient(2px 2px at 70% 15%, white, transparent),
+    radial-gradient(1px 1px at 90% 60%, white, transparent);
+  animation: drift 40s linear infinite;
+  opacity:.85;
+}
+@keyframes drift{
+  from{background-position:0 0;}
+  to{background-position:1200px 700px;}
+}
+
+/* 🌠 SHOOTING STARS */
+.shooting-star{
+  position:absolute;
+  width:140px;
+  height:2px;
+  background:linear-gradient(90deg, rgba(255,255,255,.9), transparent);
+  opacity:0;
+  transform:rotate(-20deg);
+  animation: shoot 1.2s ease-out forwards;
+  pointer-events:none;
+}
+@keyframes shoot{
+  0%{opacity:0; transform:translateX(0) rotate(-20deg);}
+  10%{opacity:1;}
+  100%{opacity:0; transform:translateX(600px) rotate(-20deg);}
+}
+
+/* 💖 CONTENT */
+.container{
+  text-align:center;
+  z-index:2;
+  opacity:0;
+  transform:scale(.96);
+  transition:1s ease;
+}
+.container.show{ opacity:1; transform:scale(1); }
+
+/* 🧸 SUBTLE BOUNCE */
+.teddy{
+  width:300px;
+  max-width:80vw;
+  animation: float 4s ease-in-out infinite;
+  filter: drop-shadow(0 20px 40px rgba(255,182,193,.25));
+}
+@keyframes float{
+  0%{transform:translateY(0)}
+  50%{transform:translateY(-12px)}
+  100%{transform:translateY(0)}
+}
+
+/* ✨ GOLD TEXT */
+.text{
+  margin-top:24px;
+  font-family:'Pacifico',cursive;
+  font-size:24px;
+  line-height:1.5;
+  color:gold;
+  text-shadow:
+    0 0 10px rgba(255,215,0,.7),
+    0 0 20px rgba(255,215,0,.4);
+  min-height:160px;
+}
+
+/* ✨ BASS-ONLY SPARKLES */
+.sparkle{
+  position:absolute;
+  color:gold;
+  pointer-events:none;
+  animation:sparkle 1s ease-out forwards;
+}
+@keyframes sparkle{
+  0%{transform:scale(0); opacity:1;}
+  100%{transform:scale(1.6) translateY(-40px); opacity:0;}
+}
+
+.tap{
+  position:absolute; bottom:30px;
+  color:#aaa; font-size:14px;
+  animation: blink 1.5s infinite;
+}
+@keyframes blink{
+  0%,100%{opacity:.3}
+  50%{opacity:1}
+}
+</style>
+</head>
+
+<body onclick="startMagic()">
+<div class="stars"></div>
+
+<div class="container" id="box">
+  <img src="teddy.jpg" class="teddy">
+  <div class="text" id="text"></div>
+</div>
+
+<div class="tap" id="tap">tap anywhere ✨</div>
+<audio id="music" src="song.mp3"></audio>
+
+<script>
+const msg = `HAPPY TEDDY DAY MY LOVE 💕
+altho your a teddy yourself,
+and such a cutie shundar one might I say 🥺
+MWAH 😘 I’ll eat u,
+idhr ao 💖`;
+
+let i=0, audioCtx, analyser, dataArray, lastStar=0;
+
+function typeText(){
+  if(i<msg.length){
+    const el=document.getElementById("text");
+    el.innerHTML += msg[i]==="\n" ? "<br>" : msg[i];
+    i++; setTimeout(typeText,45);
+  }
+}
+
+/* ✨ sparkle helper */
+function sparkle(x,y){
+  const s=document.createElement("div");
+  s.className="sparkle";
+  s.textContent="✨";
+  s.style.left=x+"px";
+  s.style.top=y+"px";
+  document.body.appendChild(s);
+  setTimeout(()=>s.remove(),1000);
+}
+
+/* 🌠 shooting star helper */
+function shootingStar(){
+  const st=document.createElement("div");
+  st.className="shooting-star";
+  st.style.top=Math.random()*window.innerHeight*0.6+"px";
+  st.style.left=Math.random()*window.innerWidth*0.3+"px";
+  document.body.appendChild(st);
+  setTimeout(()=>st.remove(),1300);
+}
+
+/* 🎵 BASS-ONLY ANALYSIS */
+function beatDetect(){
+  analyser.getByteFrequencyData(dataArray);
+  // bass = first bins only
+  const bassBins = dataArray.slice(0, 8);
+  const bass = bassBins.reduce((a,b)=>a+b,0)/bassBins.length;
+
+  if(bass > 170){
+    sparkle(
+      Math.random()*window.innerWidth,
+      Math.random()*window.innerHeight
+    );
+  }
+
+  // occasional shooting star (time-gated, not beat spam)
+  const now=performance.now();
+  if(now-lastStar > 6000 && Math.random() < 0.03){
+    lastStar=now;
+    shootingStar();
+  }
+
+  requestAnimationFrame(beatDetect);
+}
+
+function startMagic(){
+  document.getElementById("box").classList.add("show");
+  document.getElementById("tap").style.display="none";
+  typeText();
+
+  const music=document.getElementById("music");
+  audioCtx=new AudioContext();
+  analyser=audioCtx.createAnalyser();
+  analyser.fftSize=256;
+  dataArray=new Uint8Array(analyser.frequencyBinCount);
+
+  const src=audioCtx.createMediaElementSource(music);
+  src.connect(analyser);
+  analyser.connect(audioCtx.destination);
+
+  music.play();
+  beatDetect();
+}
+</script>
+</body>
+</html>
